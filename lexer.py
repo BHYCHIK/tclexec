@@ -1,45 +1,90 @@
-import ply.lex as lex
 import re
 
-tokens = (
-    'TCL_WORD',
-    'TCL_OPEN_CURLY_BRACE',
-    'TCL_CLOSE_CURLY_BRACE',
-    'TCL_OPEN_SQUARE_BRACE',
-    'TCL_CLOSE_SQUARE_BRACE',
-    'TCL_COMMENT',
-    'TCL_EXTENSION_OPERATOR',
-    'TCL_DOLLAR',
-    'TCL_DOLLAR_BRACE',
-    'TCL_END_OF_STATEMENT',
-    'TCL_ESCAPE_SYMBOL',
-    'TCL_QUOTE',
-    )
+class LexerException(Exception):
+    pass
 
-t_TCL_WORD = r'[^{}$[\]#;"\n]+'
-t_TCL_OPEN_CURLY_BRACE = r'\{'
-t_TCL_CLOSE_CURLY_BRACE = r'}'
-t_TCL_OPEN_SQUARE_BRACE = r'\['
-t_TCL_CLOSE_SQUARE_BRACE = r']'
-t_TCL_COMMENT = r'\#'
-t_TCL_EXTENSION_OPERATOR = r'\{\*\}'
-t_TCL_DOLLAR = '\$'
-t_TCL_DOLLAR_BRACE = r'\$\{'
-t_TCL_END_OF_STATEMENT = r'\n|;'
-t_TCL_QUOTE = r'"'
+def parse_word(data):
+    m = re.match(r'^([a-zA-Z0-9]+)', data)
+   if m:
+       return ('SIMPLE_WORD', m.group(0))
 
-t_ignore = ' \t\r\f'
+   m = re.match(r'^"(.*?[^\])")', data)
+   if m:
+       return ('QUOTED_WORD', m.group(0))
 
-def t_error(t):
-    print(t)
-    print('Illegal character \'%s\'' % t.value[0])
-    t.lexer.skip(1)
+   if data.startswith('['):
+       pos = 1
+       counter = 1
+       escaped = False
+       while (counter != 0) and (pos < len(data)):
+           if escaped:
+               escaped = False
+               pos += 1
+               continue
 
-def get_tokens(data):
-    lexer = lex.lex(reflags=re.UNICODE | re.DOTALL)
-    lexer.input(data)
-    while True:
-        tok = lexer.token()
-        if not tok:
-            return
-        yield tok
+           if data[pos] == '\\':
+               escaped = True
+               pos += 1
+               continue
+
+           if data[pos] == '[':
+               counter += 1
+               pos += 1
+               continue
+
+           if data[pos] == ']':
+               counter -= 1
+               if counter == 0:
+                   break
+               pos += 1
+               continue
+
+           pos += 1
+       return ('SUBSTITUTE_WORD', data[:pos])
+
+   if data.startswith('{'):
+       pos = 1
+        counter = 1
+        escaped = False
+        while (counter != 0) and (pos < len(data):
+                if escaped:
+                escaped = False
+                pos += 1
+                continue
+
+                if data[pos] == '\\':
+                escaped = True
+                pos += 1
+                continue
+
+                if data[pos] == '{':
+                counter += 1
+                pos += 1
+                continue
+
+                if data[pos] == '}':
+                counter -= 1
+                if counter == 0:
+                break
+                pos += 1
+                continue
+
+                pos += 1
+                return ('FIGURE_WORD', data[:pos])
+
+                return None
+
+
+                def get_tokens(data):
+                position = 0
+                data_len = len(data)
+                while position < data_len:
+                word = get_next_token(data[position:])
+                if word is not None:
+                yield word
+                position += len(word[1])
+                continue
+                if data[position] in ('\n', ';'):
+                yield ('END_OF_STATEMENT', data[position])
+                position += 1
+                continue

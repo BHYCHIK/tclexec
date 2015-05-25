@@ -17,9 +17,9 @@ set person(name) Neo
 set greeting "Hello, $person(name)"
 set c [expr {$a + $b}]
 
-if {3 > 4} {
+if "3 > 4" "
     puts {This will never happen}
-} elseif {4 > 4} {
+" elseif {4 > 4} {
     puts {This will also never happen}
 } else {
     puts {This will always happen}
