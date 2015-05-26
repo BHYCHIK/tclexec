@@ -37,5 +37,5 @@ def draw_ast(ast):
         G.add_node(command['value'].value)
         cmd_node = G.get_node(command['value'].value)
         G.add_edge(root_node, cmd_node)
-    G.draw('/home/denis/Desktop/ast.png')
+    G.draw('/home/bhychik/ast.png')
        

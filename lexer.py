@@ -158,4 +158,4 @@ class TclLexer(object):
             if self._data[self._pos] in (' ', '\f', '\t'):
                 self._pos += 1
                 continue
-            return self._raise_error('unknown character')
+            raise self._raise_error('unknown character')
