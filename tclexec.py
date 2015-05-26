@@ -15,4 +15,5 @@ if __name__ == '__main__':
         sys.stderr.write('invalid source code: {}\n'.format(e))
     ast = build_ast(tokens)
     print(ast)
+    draw_ast(ast)
 
