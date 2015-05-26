@@ -6,7 +6,7 @@ class Token(object):
         self.type = type
         self.value = value
     def __str__(self):
-        return self.value
+        return 'val: {}, type: {}'.format(self.value, self.type)
     def __repr__(self):
         return 'Token(type={}, value={})'.format(self.type, self.value)
     def get_id(self):
