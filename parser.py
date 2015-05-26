@@ -1,3 +1,4 @@
+from lexer import MultiToken
 import pygraphviz as pgv
 
 def gen_command_node(command, args):
@@ -16,7 +17,14 @@ def build_ast(tokens):
             if not command_read:
                 continue
             command_read = False
-            commands.append(gen_command_node(command, args))
+            command_args = []
+            for arg in args:
+                if isinstance(arg, MultiToken):
+                    cmd_arg = {'value': arg, 'children': tuple({'value': a, 'children': ()} for a in arg.subtokens)}
+                else:
+                    cmd_arg = {'value': arg, 'children': ()}
+                command_args.append(cmd_arg)
+            commands.append(gen_command_node(command, tuple(command_args)))
             args = []
             command = None
             continue
@@ -28,18 +36,27 @@ def build_ast(tokens):
             args.append(token)
     
     return {'value': 'Program', 'children': commands}
-        
+
+def create_node(g, value, label):
+    g.add_node(value)
+    n = g.get_node(value)
+    n.attr['label'] = label
+    return n
+
 def draw_ast(ast):
     G=pgv.AGraph()
-    G.add_node(ast['value'])
-    root_node = G.get_node(ast['value'])
+    root_node = create_node(G, 'Program', None)
     for command in ast['children']:
-        G.add_node(command['value'].value)
-        cmd_node = G.get_node(command['value'].value)
+        cmd_node = create_node(G, command['value'].get_id(), command['value'])
         G.add_edge(root_node, cmd_node)
-        for arg in cmd_node['children']:
-            G.add_node(arg['value'].value)
-            arg_node = G.get_node(arg['value'].value)
+        for arg in command['children']:
+            arg_node = create_node(G, arg['value'].get_id() , arg['value'])
             G.add_edge(cmd_node, arg_node)
+
+            subargs = arg.get('children', ())
+            for subarg in subargs:
+                subarg_node = create_node(G, subarg['value'].get_id(), subarg['value'])
+                G.add_edge(arg_node, subarg_node)
     G.layout(prog='dot')
+    G.draw('ast.dot')
     G.draw('ast.png')

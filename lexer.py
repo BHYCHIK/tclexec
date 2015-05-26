@@ -5,14 +5,19 @@ class Token(object):
         self.pos = pos
         self.type = type
         self.value = value
+    def __str__(self):
+        return self.value
     def __repr__(self):
         return 'Token(type={}, value={})'.format(self.type, self.value)
+    def get_id(self):
+        return '{}:{}'.format(self.value, self.pos)
 
 class MultiToken(Token):
     def __init__(self, pos, type, subtokens):
         self.pos = pos
         self.type = type
         self.subtokens = subtokens
+        self.value = 'MultiToken'
     def __repr__(self):
         return 'MultiToken(type={}, subtokens={})'.format(self.type, self.subtokens)
 
