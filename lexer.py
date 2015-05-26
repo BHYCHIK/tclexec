@@ -13,6 +13,8 @@ class MultiToken(Token):
         self.pos = pos
         self.type = type
         self.subtokens = subtokens
+    def __repr__(self):
+        return 'MultiToken(type={}, subtokens={})'.format(self.type, self.subtokens)
 
 class LexerException(Exception):
     pass
@@ -52,16 +54,17 @@ class TclParser(object):
             pos += 1
         if counter != 0:
             return self._raise_error('Unbalanced brackets found')
-        return pos + 2
+        return pos + 1
 
-    def _parse_one_word(self, data):
+    def _parse_one_word(self):
+        data = self._data[self._pos:]
         if data.startswith('$'):
             if len(data) == len('$'):
                 return self._raise_error('unexpected end of input')
             if data[1] == '$':
                 return self._raise_error('$$ is disallowed')
             self._pos += 1
-            word = self._parse_one_word(data[1:])
+            word = self._parse_one_word()
             if word is None:
                 return self._raise_error('expected word after $')
             word.type = 'DOLLAR_WORD'
@@ -94,8 +97,19 @@ class TclParser(object):
 
         return None
 
-    def _parse_multiword(self, data):
-        return self._parse_one_word(data)
+    def _parse_multiword(self):
+        words = []
+        first_pos = self._pos
+        while True:
+            w = self._parse_one_word()
+            if w is None:
+                break
+            words.append(w)
+        if not words:
+            return None
+        if len(words) == 1:
+            return words[0]
+        return MultiToken(pos=first_pos, type='MULTI_WORD', subtokens=tuple(words))
 
     def _parse_comment(self):
         t = Token(pos=self._pos, type='COMMENT', value=None)
@@ -133,7 +147,7 @@ class TclParser(object):
                 self._pos += 1
                 yield self._parse_comment()
                 continue
-            word = self._parse_multiword(self._data[self._pos:])
+            word = self._parse_multiword()
             if word is not None:
                 yield word
                 continue
