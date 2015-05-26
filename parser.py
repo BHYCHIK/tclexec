@@ -37,5 +37,9 @@ def draw_ast(ast):
         G.add_node(command['value'].value)
         cmd_node = G.get_node(command['value'].value)
         G.add_edge(root_node, cmd_node)
+        for arg in cmd_node['children']:
+            G.add_node(arg['value'].value)
+            arg_node = G.get_node(arg['value'].value)
+            G.add_edge(cmd_node, arg_node)
     G.layout(prog='dot')
     G.draw('ast.png')
