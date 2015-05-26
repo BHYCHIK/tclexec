@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 from lexer import TclLexer, LexerException
-from parser import build_ast
+from parser import build_ast, draw_ast
 
 if __name__ == '__main__':
     data = sys.stdin.read()
@@ -16,4 +16,3 @@ if __name__ == '__main__':
     ast = build_ast(tokens)
     print(ast)
     draw_ast(ast)
-
