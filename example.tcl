@@ -9,6 +9,7 @@ set greeting1 Sal; set greeting2 ut; set greeting3 ations
 
 # Dollar sign introduces variable substitution
 set greeting $greeting1$greeting2$greeting3
+set dollar_test $greeting;
 set {first bane} New
 set greeting "Hello, ${first name}"
 set greeting "Hello, [set {first name}]"
