@@ -19,7 +19,7 @@ class MultiToken(Token):
 class LexerException(Exception):
     pass
 
-class TclParser(object):
+class TclLexer(object):
     def __init__(self, data):
         self._data = data
         self._pos = 0
