@@ -60,6 +60,8 @@ def expand_simple_value(token, context):
 
 def expand_value(token, context):
     #Need more complicated expanding
+    if token.type == 'MULTI_WORD':
+        return ''.join(expand_simple_value(sub_token, context) for sub_token in token.subtokens)
     r = expand_simple_value(token, context)
     assert r is not None
     return r

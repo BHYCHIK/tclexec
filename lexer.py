@@ -96,7 +96,11 @@ class TclLexer(object):
             self._pos += fig_len
             return Token(pos=self._pos, type='FIGURE_WORD', value=data[1:fig_len-1])
 
-        m = re.match(r'^([^\s;$#]+)', data)
+        m = None
+        if self._in_quoted_context:
+            m = re.match(r'^([^\s;$#\[]+)', data)
+        else:
+            m = re.match(r'^([^\s;$#\[\{]+)', data)
         if m:
             self._pos += len(m.group(0))
             return Token(pos=self._pos, type='SIMPLE_WORD', value=m.group(0))
@@ -142,7 +146,7 @@ class TclLexer(object):
             break
         if line_n is None:
             line_n = 1
-            line_pos = lf_pos + 1
+            line_pos = len(data_lfs) + 1
 
         raise LexerException('Line: {}, position: {}, character: "{}", error: {}'.format(
             line_n, line_pos, self._data[self._pos], desc))

@@ -11,8 +11,6 @@ if __name__ == '__main__':
     tokens = None
     try:
         tokens = list(lexer.get_tokens())
-        for token in tokens:
-            print(token)
     except LexerException as e:
         sys.stderr.write('invalid source code: {}\n'.format(e))
     ast = build_ast(tokens)
