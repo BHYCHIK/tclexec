@@ -29,11 +29,14 @@ class TclInterpretator(object):
         text = 'Line: {}, position: {}: {}'.format(line_n, line_pos, description)
         raise RuntimeErrorException(text)
 
-    def exec_subprogram(self, subprogram_code):
+    def exec_subprogram(self, cur_token, subprogram_code):
         lexer = TclLexer(subprogram_code)
-        tokens = list(lexer.get_tokens())
+        tokens = self._fix_tokens_positions(cur_token.pos + len('['), lexer.get_tokens())
         ast = build_ast(tokens)
-        return self.execute(ast)
+        interp = TclInterpretator(source_code=self._source_code, context=deepcopy(self._context))
+        ret = interp.execute(ast)
+        self._context = interp._context # TODO: merge context
+        return ret
 
     def expand_simple_value(self, token):
         if token.type in ('FIGURE_WORD', 'SIMPLE_WORD'):
@@ -52,12 +55,11 @@ class TclInterpretator(object):
                 ret_val.append(self.expand_value(t))
             return ''.join(ret_val)
         if token.type == 'SUBSTITUTE_WORD':
-            return self.exec_subprogram(token.value)
+            return self.exec_subprogram(token, token.value)
 
         assert 0
 
     def expand_value(self, token):
-        #Need more complicated expanding
         if token.type == 'MULTI_WORD':
             return ''.join(self.expand_simple_value(sub_token) for sub_token in token.subtokens)
         r = self.expand_simple_value(token)
@@ -91,12 +93,15 @@ class TclInterpretator(object):
             #print('command: %s %s' % (cmd['value'].value, ' '.join(a['value'].value for a in cmd['children'])))
             return_value = self.execute_command(cmd)
             #print '%s: %s' % (cmd['value'].value, return_value)
-            assert return_value is None or isinstance(return_value, basestring)
+            assert return_value is None or isinstance(return_value, basestring), type(return_value)
         return return_value
 
     def _command_set(self, token, args_list):
         if len(args_list) == 1:
-            return self._context['vars'][args_list[0]].value
+            var = self._context['vars'].get(args_list[0].value)
+            if var is None:
+                self._generate_runtime_error(token, 'variable {} doesn\'t exist'.format(args_list[0].value))
+            return var.value
         if len(args_list) != 2:
             self._generate_runtime_error(token, 'set command needs exactly 1 or 2 arguments. %d is given' % len(args_list))
         self._context['vars'][args_list[0].value] = Var(value=args_list[1].value, token=args_list[1].token)

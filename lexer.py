@@ -102,8 +102,9 @@ class TclLexer(object):
 
         if data.startswith('['):
             sub_len = self._parse_balanced_brackets(data, '[', ']')
+            t = Token(pos=self._pos, type='SUBSTITUTE_WORD', value=data[1:sub_len-1])
             self._pos += sub_len
-            return Token(pos=self._pos, type='SUBSTITUTE_WORD', value=data[1:sub_len-1])
+            return t
 
         if data.startswith('{') and not self._in_quoted_context:
             if data.startswith('{*}'):
