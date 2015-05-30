@@ -9,6 +9,17 @@ def build_ast(tokens):
     commands = []
     command = None
     args = []
+
+    def build_statement(args, command):
+        command_args = []
+        for arg in args:
+            if isinstance(arg, MultiToken):
+                cmd_arg = {'value': arg, 'children': tuple({'value': a, 'children': ()} for a in arg.subtokens)}
+            else:
+                cmd_arg = {'value': arg, 'children': ()}
+            command_args.append(cmd_arg)
+        commands.append(gen_command_node(command, tuple(command_args)))
+
     for token in tokens:
         if token.type == 'COMMENT':
             continue
@@ -17,14 +28,7 @@ def build_ast(tokens):
             if not command_read:
                 continue
             command_read = False
-            command_args = []
-            for arg in args:
-                if isinstance(arg, MultiToken):
-                    cmd_arg = {'value': arg, 'children': tuple({'value': a, 'children': ()} for a in arg.subtokens)}
-                else:
-                    cmd_arg = {'value': arg, 'children': ()}
-                command_args.append(cmd_arg)
-            commands.append(gen_command_node(command, tuple(command_args)))
+            build_statement(args, command)
             args = []
             command = None
             continue
@@ -34,7 +38,9 @@ def build_ast(tokens):
             command_read = True
         else:
             args.append(token)
-    
+    if command_read:
+        build_statement(args, command)
+
     return {'value': 'Program', 'children': commands}
 
 def create_node(g, value, label):

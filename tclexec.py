@@ -16,7 +16,7 @@ if __name__ == '__main__':
     except LexerException as e:
         sys.stderr.write('invalid source code: {}\n'.format(e))
     ast = build_ast(tokens)
-    p = PrettyPrinter(indent=2)
-    p.pprint(ast)
-    draw_ast(ast)
+    #p = PrettyPrinter(indent=2)
+    #p.pprint(ast)
+    #draw_ast(ast)
     execute(ast)
