@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import sys
 from lexer import TclLexer, LexerException
 from parser import build_ast, draw_ast
 from pprint import PrettyPrinter
+from interpret import execute
 
 if __name__ == '__main__':
     data = sys.stdin.read()
@@ -18,3 +19,4 @@ if __name__ == '__main__':
     p = PrettyPrinter(indent=2)
     p.pprint(ast)
     draw_ast(ast)
+    execute(ast)
