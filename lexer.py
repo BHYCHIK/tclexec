@@ -24,6 +24,22 @@ class MultiToken(Token):
 class LexerException(Exception):
     pass
 
+def get_line_from_pos(pos, source_code):
+    data_lfs = tuple(m.start() for m in re.finditer('\n', source_code))
+    line_n = line_pos = None
+    lf_pos = 0
+    for i, lf_pos in enumerate(data_lfs):
+        assert pos != lf_pos, (pos, lf_pos) # can't be error on LF
+        if pos > lf_pos:
+            line_n = i + 2
+            line_pos = pos - lf_pos
+            continue
+        break
+    if line_n is None: # error was before first LF
+        line_n = 1
+        line_pos = pos + 1
+    return line_n, line_pos
+
 class TclLexer(object):
     def __init__(self, data, in_quoted_context=False):
         self._data = data
@@ -80,8 +96,9 @@ class TclLexer(object):
             m = re.match(r'^"(([^"\\]|\\.)*?)"', data)
             if m is None:
                 return self._raise_error('Unterminated string')
+            t = Token(pos=self._pos, type='QUOTED_WORD', value=m.group(1))
             self._pos += len(m.group(0))
-            return Token(pos=self._pos, type='QUOTED_WORD', value=m.group(1))
+            return t
 
         if data.startswith('['):
             sub_len = self._parse_balanced_brackets(data, '[', ']')
@@ -90,20 +107,23 @@ class TclLexer(object):
 
         if data.startswith('{') and not self._in_quoted_context:
             if data.startswith('{*}'):
+                t = Token(pos=self._pos, type='EXPAND_WORD', value='{*}')
                 self._pos += len('{*}')
-                return Token(pos=self._pos, type='EXPAND_WORD', value='{*}')
+                return t
             fig_len = self._parse_balanced_brackets(data, '{', '}')
+            t = Token(pos=self._pos, type='FIGURE_WORD', value=data[1:fig_len-1])
             self._pos += fig_len
-            return Token(pos=self._pos, type='FIGURE_WORD', value=data[1:fig_len-1])
+            return t
 
         m = None
-        if self._in_quoted_context:
-            m = re.match(r'^([^\s;$#\[]+)', data)
-        else:
-            m = re.match(r'^([^\s;$#\[\{]+)', data)
+        simple_word_separators = r'^\s;$#\['
+        if not self._in_quoted_context:
+            simple_word_separators += r'\{'
+        m = re.match(r'^([' + simple_word_separators + r']+)', data)
         if m:
+            t = Token(pos=self._pos, type='SIMPLE_WORD', value=m.group(0))
             self._pos += len(m.group(0))
-            return Token(pos=self._pos, type='SIMPLE_WORD', value=m.group(0))
+            return t
 
         return None
 
@@ -135,19 +155,7 @@ class TclLexer(object):
         return t
 
     def _raise_error(self, desc):
-        data_lfs = tuple(m.start() for m in re.finditer('\n', self._data))
-        line_n = line_pos = None
-        for i, lf_pos in enumerate(data_lfs):
-            assert self._pos != lf_pos # can't be error on LF
-            if self._pos > lf_pos:
-                line_n = i + 2
-                line_pos = self._pos - lf_pos
-                continue
-            break
-        if line_n is None:
-            line_n = 1
-            line_pos = len(data_lfs) + 1
-
+        line_n, line_pos = get_line_from_pos(self._pos, self._data)
         raise LexerException('Line: {}, position: {}, character: "{}", error: {}'.format(
             line_n, line_pos, self._data[self._pos], desc))
     def get_tokens(self):

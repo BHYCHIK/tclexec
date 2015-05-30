@@ -3,7 +3,7 @@ import sys
 from lexer import TclLexer, LexerException
 from parser import build_ast, draw_ast
 from pprint import PrettyPrinter
-from interpret import execute
+from interpret import TclInterpretator, RuntimeErrorException
 
 if __name__ == '__main__':
     data = sys.stdin.read()
@@ -17,4 +17,8 @@ if __name__ == '__main__':
     #p = PrettyPrinter(indent=2)
     #p.pprint(ast)
     #draw_ast(ast)
-    execute(ast)
+    try:
+        interp = TclInterpretator(data)
+        interp.execute(ast)
+    except RuntimeErrorException as ex:
+        sys.stderr.write(ex.message + '\n')
