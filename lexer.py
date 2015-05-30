@@ -25,9 +25,10 @@ class LexerException(Exception):
     pass
 
 class TclLexer(object):
-    def __init__(self, data):
+    def __init__(self, data, in_quoted_context=False):
         self._data = data
         self._pos = 0
+        self._in_quoted_context = in_quoted_context
 
     def _parse_balanced_brackets(self, data, open_bracket, close_bracket):
         pos = 1
@@ -87,7 +88,7 @@ class TclLexer(object):
             self._pos += sub_len
             return Token(pos=self._pos, type='SUBSTITUTE_WORD', value=data[1:sub_len-1])
 
-        if data.startswith('{'):
+        if data.startswith('{') and not self._in_quoted_context:
             if data.startswith('{*}'):
                 self._pos += len('{*}')
                 return Token(pos=self._pos, type='EXPAND_WORD', value='{*}')
@@ -157,10 +158,20 @@ class TclLexer(object):
                 yield word
                 continue
             if self._data[self._pos] in ('\n', ';'):
-                yield Token(pos=self._pos, type='END_OF_STATEMENT', value=self._data[self._pos])
+                if self._in_quoted_context:
+                    yield Token(pos=self._pos, type='SIMPLE_WORD', value=self._data[self._pos])
+                else:
+                    yield Token(pos=self._pos, type='END_OF_STATEMENT', value=self._data[self._pos])
                 self._pos += 1
                 continue
             if self._data[self._pos] in (' ', '\f', '\t'):
+                if self._in_quoted_context:
+                    m = re.match(r'^\s+', self._data[self._pos:])
+                    assert m
+                    yield Token(pos=self._pos, type='SIMPLE_WORD', value=m.group(0))
+                    self._pos += len(m.group(0))
+                    continue
                 self._pos += 1
                 continue
+
             raise self._raise_error('unknown character')
