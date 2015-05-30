@@ -35,7 +35,7 @@ class TclInterpretator(object):
         ast = build_ast(tokens)
         interp = TclInterpretator(source_code=self._source_code, context=deepcopy(self._context))
         ret = interp.execute(ast)
-        self._context = interp._context # TODO: merge context
+        self._context = interp._context # TODO: merge context for 'procs'
         return ret
 
     def expand_simple_value(self, token):
