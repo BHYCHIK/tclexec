@@ -120,7 +120,7 @@ class TclInterpretator(object):
             lexer = TclLexer(arg.value)
             all_tokens.extend(self._fix_tokens_positions(arg.token.pos, lexer.get_tokens()))
         expanded_tokens = [self.expand_value(t) for t in all_tokens]
-        eval_str = ''.join(expanded_tokens)
+        eval_str = ''.join(expanded_tokens).replace('&&', ' and ').replace('||', ' or ')
         ret = eval(eval_str)
         if isinstance(ret, float):
             return '{:.16f}'.format(ret) # like in tclsh
@@ -128,4 +128,21 @@ class TclInterpretator(object):
             return '1' if ret else '0'
         return str(ret)
     def _command_if(self, token, args_list):
-        pass
+        if len(args_list) < 2:
+            self._generate_runtime_error(token, 'if command needs at leat 2 arguments: condition and body')
+        cond_expr = args_list.pop(0)
+        cond_res = self._command_expr(token, (cond_expr,))
+        if_body = args_list.pop(0)
+        if cond_res != '0':
+            return self.exec_subprogram(if_body.token, if_body.value)
+        if not args_list:
+            return None
+        next_arg = args_list.pop(0)
+        if next_arg.value == 'else':
+            else_body = args_list.pop(0)
+            if args_list:
+                self._generate_runtime_error(args_list[0].token, 'too many arguments to "if" command')
+            return self.exec_subprogram(else_body.token, else_body.value)
+        if next_arg.value != 'elseif':
+            self._generate_runtime_error(next_arg.token, 'invalid token, it should be "else" or "elseif"')
+        return self._command_if(next_arg.token, args_list)

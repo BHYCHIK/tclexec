@@ -46,7 +46,7 @@ def get_line_from_pos(pos, source_code):
     line_pos = pos + 1
     lf_pos = 0
     for i, lf_pos in enumerate(data_lfs):
-        assert pos != lf_pos, (pos, lf_pos) # can't be error on LF
+        assert pos != lf_pos, (pos, lf_pos, source_code) # can't be error on LF
         if pos > lf_pos:
             line_n = i + 2
             line_pos = pos - lf_pos
@@ -134,7 +134,7 @@ class TclLexer(object):
             return t
 
         m = None
-        expr_symbols = r'+\-*/=<>!)'
+        expr_symbols = r'+\-*/=<>!|&()%\^~'
         simple_word_separators = r'^\s;$#\[' + expr_symbols
         if not self._in_quoted_context:
             simple_word_separators += '{'
