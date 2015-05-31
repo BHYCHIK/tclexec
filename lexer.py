@@ -8,7 +8,7 @@ class Token(object):
     def __str__(self):
         return 'val: {}, type: {}'.format(self.value, self.type)
     def __repr__(self):
-        return 'Token(type={}, value={})'.format(self.type, self.value)
+        return 'Token(type={}, value={}, pos={})'.format(self.type, self.value, self.pos)
     def get_id(self):
         return '{}:{}'.format(self.value, self.pos)
 
@@ -21,12 +21,29 @@ class MultiToken(Token):
     def __repr__(self):
         return 'MultiToken(type={}, subtokens={})'.format(self.type, self.subtokens)
 
+def format_tcl_error(pos, source_code, err_desc):
+    line_n, line_pos, line = get_line_from_pos(pos, source_code)
+    err_text = 'Line: {}, position: {}: {}'.format(line_n, line_pos, err_desc)
+    marked_line = (' ' * (line_pos - 1) if line_pos else '') + '^'
+    return '\n'.join((err_text, line, marked_line))
+
 class LexerException(Exception):
     pass
 
 def get_line_from_pos(pos, source_code):
+    """
+    >>> get_line_from_pos(0, "a\\nb\\nc")
+    (1, 1, 'a')
+    >>> get_line_from_pos(1, "abc")
+    (1, 2, 'abc')
+    >>> get_line_from_pos(2, "a\\nbc")
+    (2, 1, 'bc')
+    >>> get_line_from_pos(4, "ab\\ncde\\nfg")
+    (2, 2, 'cde')
+    """
     data_lfs = tuple(m.start() for m in re.finditer('\n', source_code))
-    line_n = line_pos = None
+    line_n = 1
+    line_pos = pos + 1
     lf_pos = 0
     for i, lf_pos in enumerate(data_lfs):
         assert pos != lf_pos, (pos, lf_pos) # can't be error on LF
@@ -34,11 +51,11 @@ def get_line_from_pos(pos, source_code):
             line_n = i + 2
             line_pos = pos - lf_pos
             continue
-        break
-    if line_n is None: # error was before first LF
-        line_n = 1
-        line_pos = pos + 1
-    return line_n, line_pos
+        line = source_code[data_lfs[i-1]+1:data_lfs[i]] if i != 0 else source_code[:data_lfs[i]]
+        return line_n, line_pos, line
+    # error after last LF
+    line = source_code[data_lfs[line_n-2]+1:] if data_lfs else source_code
+    return line_n, line_pos, line
 
 class TclLexer(object):
     def __init__(self, data, in_quoted_context=False):
@@ -96,13 +113,13 @@ class TclLexer(object):
             m = re.match(r'^"(([^"\\]|\\.)*?)"', data)
             if m is None:
                 return self._raise_error('Unterminated string')
-            t = Token(pos=self._pos, type='QUOTED_WORD', value=m.group(1))
+            t = Token(pos=self._pos+len('"'), type='QUOTED_WORD', value=m.group(1))
             self._pos += len(m.group(0))
             return t
 
         if data.startswith('['):
             sub_len = self._parse_balanced_brackets(data, '[', ']')
-            t = Token(pos=self._pos, type='SUBSTITUTE_WORD', value=data[1:sub_len-1])
+            t = Token(pos=self._pos+len('['), type='SUBSTITUTE_WORD', value=data[1:sub_len-1])
             self._pos += sub_len
             return t
 
@@ -112,7 +129,7 @@ class TclLexer(object):
                 self._pos += len('{*}')
                 return t
             fig_len = self._parse_balanced_brackets(data, '{', '}')
-            t = Token(pos=self._pos, type='FIGURE_WORD', value=data[1:fig_len-1])
+            t = Token(pos=self._pos+len('{'), type='FIGURE_WORD', value=data[1:fig_len-1])
             self._pos += fig_len
             return t
 
@@ -156,9 +173,7 @@ class TclLexer(object):
         return t
 
     def _raise_error(self, desc):
-        line_n, line_pos = get_line_from_pos(self._pos, self._data)
-        raise LexerException('Line: {}, position: {}, character: "{}", error: {}'.format(
-            line_n, line_pos, self._data[self._pos], desc))
+        raise LexerException(format_tcl_error(self._pos, self._data, desc))
     def get_tokens(self):
         data_len = len(self._data)
         while self._pos < data_len:
@@ -188,3 +203,7 @@ class TclLexer(object):
                 continue
 
             raise self._raise_error('unknown character')
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

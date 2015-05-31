@@ -24,14 +24,12 @@ class TclInterpretator(object):
             self._context = context
 
     def _generate_runtime_error(self, token, description):
-        from lexer import get_line_from_pos
-        line_n, line_pos = get_line_from_pos(token.pos, self._source_code)
-        text = 'Line: {}, position: {}: {}'.format(line_n, line_pos, description)
-        raise RuntimeErrorException(text)
+        from lexer import format_tcl_error
+        raise RuntimeErrorException(format_tcl_error(token.pos, self._source_code, description))
 
     def exec_subprogram(self, cur_token, subprogram_code):
         lexer = TclLexer(subprogram_code)
-        tokens = self._fix_tokens_positions(cur_token.pos + len('['), lexer.get_tokens())
+        tokens = list(self._fix_tokens_positions(cur_token.pos, lexer.get_tokens()))
         ast = build_ast(tokens)
         interp = TclInterpretator(source_code=self._source_code, context=deepcopy(self._context))
         ret = interp.execute(ast)
@@ -48,7 +46,6 @@ class TclInterpretator(object):
             return var.value
         if token.type == 'QUOTED_WORD':
             lexer = TclLexer(token.value, in_quoted_context=True)
-            print('quoted pos ' + str(token.pos))
             tokens = self._fix_tokens_positions(token.pos, lexer.get_tokens())
             ret_val = []
             for t in tokens:
@@ -57,7 +54,7 @@ class TclInterpretator(object):
         if token.type == 'SUBSTITUTE_WORD':
             return self.exec_subprogram(token, token.value)
 
-        assert 0
+        assert 0, token
 
     def expand_value(self, token):
         if token.type == 'MULTI_WORD':
@@ -79,7 +76,6 @@ class TclInterpretator(object):
 
     def _fix_tokens_positions(self, start_pos, tokens):
         for token in tokens:
-            print('fix token {} pos: {} -> {}'.format(token.value, token.pos, token.pos + start_pos))
             new_token = deepcopy(token)
             new_token.pos += start_pos
             if token.type == 'MULTI_WORD':
@@ -100,7 +96,7 @@ class TclInterpretator(object):
         if len(args_list) == 1:
             var = self._context['vars'].get(args_list[0].value)
             if var is None:
-                self._generate_runtime_error(token, 'variable {} doesn\'t exist'.format(args_list[0].value))
+                self._generate_runtime_error(args_list[0].token, 'variable {} doesn\'t exist'.format(args_list[0].value))
             return var.value
         if len(args_list) != 2:
             self._generate_runtime_error(token, 'set command needs exactly 1 or 2 arguments. %d is given' % len(args_list))
@@ -112,3 +108,13 @@ class TclInterpretator(object):
         if len(args_list) != 1:
             self._generate_runtime_error(token, 'puts command needs exactly 2 arguments. %d is given' % len(args_list))
         print(args_list[0].value)
+
+    def _command_expr(self, token, args_list):
+        #TODO: support concat between atgs
+        expanded_arg = self.expand_simple_value(args_list[0].token)
+        lexer = TclLexer(args_list[0].value)
+        tokens = self._fix_tokens_positions(args_list[0].token.pos, lexer.get_tokens())
+        expanded_tokens = [self.expand_simple_value(t) for t in tokens]
+        eval_str = ''.join(expanded_tokens)
+        ret = eval(eval_str)
+        return str(ret)
