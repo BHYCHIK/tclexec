@@ -134,7 +134,7 @@ class TclLexer(object):
             return t
 
         m = None
-        expr_symbols = r'+\-*/='
+        expr_symbols = r'+\-*/=<>!)'
         simple_word_separators = r'^\s;$#\[' + expr_symbols
         if not self._in_quoted_context:
             simple_word_separators += '{'

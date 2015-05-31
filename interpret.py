@@ -2,6 +2,7 @@
 from lexer import TclLexer
 from parser import build_ast
 from copy import deepcopy
+from math import *
 
 class Var(dict):
     def __init__(self, **args):
@@ -121,4 +122,10 @@ class TclInterpretator(object):
         expanded_tokens = [self.expand_value(t) for t in all_tokens]
         eval_str = ''.join(expanded_tokens)
         ret = eval(eval_str)
+        if isinstance(ret, float):
+            return '{:.16f}'.format(ret) # like in tclsh
+        if isinstance(ret, bool):
+            return '1' if ret else '0'
         return str(ret)
+    def _command_if(self, token, args_list):
+        pass
