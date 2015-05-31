@@ -95,7 +95,7 @@ class TclLexer(object):
             return self._raise_error('Unbalanced brackets found')
         return pos + 1
 
-    def _parse_one_word(self):
+    def _parse_one_word(self, allow_figure_word=False):
         data = self._data[self._pos:]
         if data.startswith('$'):
             if len(data) == len('$'):
@@ -103,7 +103,7 @@ class TclLexer(object):
             if data[1] == '$':
                 return self._raise_error('$$ is disallowed')
             self._pos += 1
-            word = self._parse_one_word()
+            word = self._parse_one_word(allow_figure_word=True)
             if word is None:
                 return self._raise_error('expected word after $')
             word.type = 'DOLLAR_WORD'
@@ -123,7 +123,7 @@ class TclLexer(object):
             self._pos += sub_len
             return t
 
-        if data.startswith('{'):
+        if data.startswith('{') and (not self._in_quoted_context or allow_figure_word):
             if data.startswith('{*}'):
                 t = Token(pos=self._pos, type='EXPAND_WORD', value='{*}')
                 self._pos += len('{*}')

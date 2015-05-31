@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from lexer import TclLexer
+from lexer import TclLexer, MultiToken
 from parser import build_ast
 from copy import deepcopy
 from math import *
@@ -61,6 +61,7 @@ class TclInterpretator(object):
 
     def expand_value(self, token):
         if token.type == 'MULTI_WORD':
+            assert token.subtokens
             return ''.join(self.expand_simple_value(sub_token) for sub_token in token.subtokens)
         r = self.expand_simple_value(token)
         assert r is not None
@@ -69,6 +70,16 @@ class TclInterpretator(object):
     def execute_command(self, cmd):
         args_list = []
         for arg in cmd['children']:
+            arg_token = arg['value']
+            if isinstance(arg_token, MultiToken) and arg_token.subtokens[0].type == 'EXPAND_WORD': # {*}
+                if len(arg_token.subtokens) != 2:
+                    self._generate_runtime_error(arg_token, 'invalid usage of {*}')
+                words_token = arg_token.subtokens[1]
+                lexer = TclLexer(self.expand_value(words_token))
+                tokens = self._fix_tokens_positions(words_token.pos, lexer.get_tokens())
+                new_strings = [TclString(value=self.expand_value(t), token=t) for t in tokens]
+                args_list.extend(new_strings)
+                continue
             string = TclString(value=self.expand_value(arg['value']), token=arg['value'])
             args_list.append(string)
         cmd_name = self.expand_value(cmd['value'])
