@@ -85,7 +85,7 @@ class TclInterpretator(object):
         cmd_name = self.expand_value(cmd['value'])
         self_method_name = '_command_' + cmd_name
         if not hasattr(self, self_method_name):
-            self._generate_runtime_error(cmd['value'], 'command %s doesn\'t exist' % cmd_name)
+            self._generate_runtime_error(cmd['value'], 'command "%s" doesn\'t exist' % cmd_name)
         return getattr(self, self_method_name)(cmd['value'], args_list)
 
     def _fix_tokens_positions(self, start_pos, tokens):
@@ -170,3 +170,11 @@ class TclInterpretator(object):
         var_int_value += 1
         self._context['vars'][var_name.value] = Var(value=str(var_int_value), token=var_str_value.token)
         return str(var_int_value)
+    def _command_while(self, token, args_list):
+        if len(args_list) != 2:
+            self._generate_runtime_error(token, 'command "while" need 2 arguments: condition and body')
+        cond_expr, body = args_list
+        cond_res = self._command_expr(token, (cond_expr,))
+        while cond_res != '0':
+            self.exec_subprogram(body.token, body.value)
+            cond_res = self._command_expr(token, (cond_expr,))
