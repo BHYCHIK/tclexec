@@ -1,0 +1,3 @@
+Line: 4, position: 4: expand variable b doesn't exist
+  $b
+   ^

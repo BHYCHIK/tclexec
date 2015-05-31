@@ -12,7 +12,7 @@ if __name__ == '__main__':
     try:
         tokens = list(lexer.get_tokens())
     except LexerException as e:
-        sys.stderr.write('invalid source code: {}\n'.format(e))
+        sys.exit(e)
     ast = build_ast(tokens)
     #p = PrettyPrinter(indent=2)
     #p.pprint(ast)

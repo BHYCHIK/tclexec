@@ -1,0 +1,3 @@
+Line: 4, position: 14: variable a doesn't exist
+  set b; set a
+             ^
