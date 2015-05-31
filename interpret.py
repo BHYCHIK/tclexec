@@ -146,3 +146,16 @@ class TclInterpretator(object):
         if next_arg.value != 'elseif':
             self._generate_runtime_error(next_arg.token, 'invalid token, it should be "else" or "elseif"')
         return self._command_if(next_arg.token, args_list)
+    def _command_incr(self, token, args_list):
+        if len(args_list) != 1:
+            self._generate_runtime_error(token, 'command "incr" accepts only 1 argument')
+        var_name = args_list.pop()
+        var_str_value = self._context['vars'].get(var_name.value, Var(value=0, token=None))
+        try:
+            var_int_value = int(var_str_value.value)
+        except ValueError:
+            self._generate_runtime_error(var_name.token,
+                'variable "{}" value "{}" is not an integer, "incr" command can increment only integer'.format(var_name.value, var_str_value.value))
+        var_int_value += 1
+        self._context['vars'][var_name.value] = Var(value=str(var_int_value), token=var_str_value.token)
+        return str(var_int_value)

@@ -134,11 +134,11 @@ class TclLexer(object):
             return t
 
         m = None
-        expr_symbols = r'+\-*/=<>!|&()%\^~'
-        simple_word_separators = r'^\s;$#\[' + expr_symbols
+        separators = r'+\-*/=<>!|&()%\^~,'
+        simple_word_separators = r'^\s;$#\[' + separators
         if not self._in_quoted_context:
             simple_word_separators += '{'
-        simple_word_regex = r'^([{}]+|[{}]+)'.format(simple_word_separators, expr_symbols)
+        simple_word_regex = r'^([{}]+|[{}]+)'.format(simple_word_separators, separators)
         m = re.match(simple_word_regex, data)
         if m:
             t = Token(pos=self._pos, type='SIMPLE_WORD', value=m.group(0))
