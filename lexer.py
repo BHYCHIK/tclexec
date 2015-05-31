@@ -123,7 +123,7 @@ class TclLexer(object):
             self._pos += sub_len
             return t
 
-        if data.startswith('{') and not self._in_quoted_context:
+        if data.startswith('{'):
             if data.startswith('{*}'):
                 t = Token(pos=self._pos, type='EXPAND_WORD', value='{*}')
                 self._pos += len('{*}')

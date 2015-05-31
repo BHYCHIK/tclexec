@@ -9,3 +9,6 @@ puts "1 + $a = {6}"
 puts "1 + $a = [set a 333; set c 777]"
 puts $a
 puts $a$c[set a]
+puts "a=${a}"
+set {a b} 7
+puts ${a b}
