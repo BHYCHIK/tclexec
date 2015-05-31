@@ -13,6 +13,8 @@ class RuntimeErrorException(Exception):
 class TclString(object):
     def __init__(self, **args):
         self.__dict__.update(**args)
+    def __repr__(self):
+        return self.__dict__.__repr__()
 
 class TclInterpretator(object):
     def __init__(self, source_code, context=None):
@@ -110,11 +112,13 @@ class TclInterpretator(object):
         print(args_list[0].value)
 
     def _command_expr(self, token, args_list):
-        #TODO: support concat between atgs
-        expanded_arg = self.expand_simple_value(args_list[0].token)
-        lexer = TclLexer(args_list[0].value)
-        tokens = self._fix_tokens_positions(args_list[0].token.pos, lexer.get_tokens())
-        expanded_tokens = [self.expand_simple_value(t) for t in tokens]
+        if not args_list:
+            self._generate_runtime_error(token, 'expr command needs at least 1 argument')
+        all_tokens = []
+        for arg in args_list:
+            lexer = TclLexer(arg.value)
+            all_tokens.extend(self._fix_tokens_positions(arg.token.pos, lexer.get_tokens()))
+        expanded_tokens = [self.expand_value(t) for t in all_tokens]
         eval_str = ''.join(expanded_tokens)
         ret = eval(eval_str)
         return str(ret)
