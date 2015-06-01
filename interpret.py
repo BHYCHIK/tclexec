@@ -38,10 +38,16 @@ class TclInterpretator(object):
         lexer = TclLexer(subprogram_code)
         tokens = list(self._fix_tokens_positions(cur_token.pos, lexer.get_tokens()))
         ast = build_ast(tokens)
-        interp = TclInterpretator(source_code=self._source_code, context=ctx, global_context=self._context)
+        glob_ctx = None
+        if custom_context is not None:
+            glob_ctx = self._context
+        interp = TclInterpretator(source_code=self._source_code, context=ctx, global_context=glob_ctx)
         ret = interp.execute(ast)
         if custom_context is None:
             self._context = interp._context # TODO: merge context for 'procs'
+        else: #merge global vars
+            for glob_var in interp._context['global_vars']:
+                self._context['vars'][glob_var] = interp._context['vars'][glob_var]
         return ret
 
     def expand_simple_value(self, token):
@@ -204,3 +210,11 @@ class TclInterpretator(object):
             self._generate_runtime_error(token, 'command "proc" need 3 arguments: proc name, arguments list and body')
         proc_name, arguments, body = args_list
         self._context['proc'][proc_name.value] = {'arguments': arguments, 'body': body, 'proc_name': proc_name, 'proc_token': token}
+    def _command_global(self, token, args_list):
+        if len(args_list) != 1:
+            self._generate_runtime_error(token, 'command "global" need 1 argument')
+        if self._global_context is not None:
+            if args_list[0].value not in self._global_context['vars']:
+                self._generate_runtime_error(args_list[0].token, 'variable \'%s\' is not defined' % args_list[0].value)
+            self._context['vars'][args_list[0].value] = self._global_context['vars'][args_list[0].value]
+        self._context['global_vars'].append(args_list[0].value)
