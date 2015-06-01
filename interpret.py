@@ -83,7 +83,7 @@ class TclInterpretator(object):
         ctx['global_vars'] = []
         for i in range(0, len(args_list)):
             ctx['vars'][formal_args[i]] = Var(value=args_list[i].value, token=proc_object['proc_token'])
-        return self.exec_subprogram(proc_object['proc_token'], proc_object['body'].value,custom_context=ctx)
+        return self.exec_subprogram(proc_object['body'].token, proc_object['body'].value,custom_context=ctx)
 
     def execute_command(self, cmd):
         args_list = []
