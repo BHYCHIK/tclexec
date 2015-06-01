@@ -18,23 +18,27 @@ class TclString(object):
         return self.__dict__.__repr__()
 
 class TclInterpretator(object):
-    def __init__(self, source_code, context=None):
+    def __init__(self, source_code, context=None, global_context=None):
         self._source_code = source_code
         if context is None:
             self._context = dict()
             self._context['vars'] = dict()
+            self._context['proc'] = dict()
+            self._context['global_vars'] = []
         else:
             self._context = context
+        self._global_context=global_context
 
     def _generate_runtime_error(self, token, description):
         from lexer import format_tcl_error
         raise RuntimeErrorException(format_tcl_error(token.pos, self._source_code, description))
 
-    def exec_subprogram(self, cur_token, subprogram_code):
+    def exec_subprogram(self, cur_token, subprogram_code, custom_context=None):
+        ctx = custom_context or deepcopy(self._context)
         lexer = TclLexer(subprogram_code)
         tokens = list(self._fix_tokens_positions(cur_token.pos, lexer.get_tokens()))
         ast = build_ast(tokens)
-        interp = TclInterpretator(source_code=self._source_code, context=deepcopy(self._context))
+        interp = TclInterpretator(source_code=self._source_code, context=ctx, global_context=self._context)
         ret = interp.execute(ast)
         self._context = interp._context # TODO: merge context for 'procs'
         return ret
@@ -67,6 +71,19 @@ class TclInterpretator(object):
         assert r is not None
         return r
 
+    def execute_proc(self, cmd, cmd_name, args_list):
+        proc_object = self._context['proc'][cmd_name]
+        formal_args = proc_object['arguments'].value.split()
+        if len(args_list) != len(formal_args):
+            self._generate_runtime_error(cmd['value'], 'proc \'{}\' need {} arguments. {} are given.'.format(cmd_name, len(formal_args), len(args_list)))
+        ctx = dict()
+        ctx['vars'] = dict()
+        ctx['proc'] = dict()
+        ctx['global_vars'] = []
+        for i in range(0, len(args_list)):
+            ctx['vars'][formal_args[i]] = Var(value=args_list[i].value, token=proc_object['proc_token'])
+        return self.exec_subprogram(proc_object['proc_token'], proc_object['body'].value,custom_context=ctx)
+
     def execute_command(self, cmd):
         args_list = []
         for arg in cmd['children']:
@@ -83,6 +100,8 @@ class TclInterpretator(object):
             string = TclString(value=self.expand_value(arg['value']), token=arg['value'])
             args_list.append(string)
         cmd_name = self.expand_value(cmd['value'])
+        if cmd_name in self._context['proc']:
+            return self.execute_proc(cmd, cmd_name, args_list)
         self_method_name = '_command_' + cmd_name
         if not hasattr(self, self_method_name):
             self._generate_runtime_error(cmd['value'], 'command "%s" doesn\'t exist' % cmd_name)
@@ -178,3 +197,9 @@ class TclInterpretator(object):
         while cond_res != '0':
             self.exec_subprogram(body.token, body.value)
             cond_res = self._command_expr(token, (cond_expr,))
+
+    def _command_proc(self, token, args_list):
+        if len(args_list) != 3:
+            self._generate_runtime_error(token, 'command "proc" need 3 arguments: proc name, arguments list and body')
+        proc_name, arguments, body = args_list
+        self._context['proc'][proc_name.value] = {'arguments': arguments, 'body': body, 'proc_name': proc_name, 'proc_token': token}

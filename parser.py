@@ -1,5 +1,5 @@
 from lexer import MultiToken
-import pygraphviz as pgv
+#import pygraphviz as pgv
 
 def gen_command_node(command, args):
     return {'value': command, 'children': args}
@@ -50,6 +50,7 @@ def create_node(g, value, label):
     return n
 
 def draw_ast(ast):
+    return
     G=pgv.AGraph()
     root_node = create_node(G, 'Program', None)
     for command in ast['children']:
