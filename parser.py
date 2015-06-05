@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from lexer import MultiToken
 import pygraphviz as pgv
 
@@ -51,7 +52,7 @@ def create_node(g, value, label):
 
 def draw_ast(ast):
     G=pgv.AGraph()
-    root_node = create_node(G, 'Program', None)
+    root_node = create_node(G, 'Program', u'Программа')
     for command in ast['children']:
         cmd_node = create_node(G, command['value'].get_id(), command['value'])
         G.add_edge(root_node, cmd_node)

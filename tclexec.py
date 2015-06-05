@@ -16,7 +16,7 @@ if __name__ == '__main__':
     ast = build_ast(tokens)
     #p = PrettyPrinter(indent=2)
     #p.pprint(ast)
-    #draw_ast(ast)
+    draw_ast(ast)
     try:
         interp = TclInterpretator(data)
         interp.execute(ast)
